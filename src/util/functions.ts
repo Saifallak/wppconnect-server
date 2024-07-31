@@ -157,72 +157,14 @@ export async function autoDownload(client: any, req: any, message: any) {
   try {
     if (message && (message['mimetype'] || message.isMedia || message.isMMS)) {
       const buffer = await client.decryptFile(message);
-      if (
-        req.serverOptions.webhook.uploadS3 ||
-        req.serverOptions?.websocket?.uploadS3
-      ) {
-        const hashName = crypto.randomBytes(24).toString('hex');
 
-        if (
-          !config?.aws_s3?.region ||
-          !config?.aws_s3?.access_key_id ||
-          !config?.aws_s3?.secret_key
-        )
-          throw new Error('Please, configure your aws configs');
-        const s3Client = new S3Client({
-          region: config?.aws_s3?.region,
-          endpoint: config?.aws_s3?.endpoint || undefined,
-          forcePathStyle: config?.aws_s3?.forcePathStyle || undefined,
-        });
-        let bucketName = config?.aws_s3?.defaultBucketName
-          ? config?.aws_s3?.defaultBucketName
-          : client.session;
-        bucketName = bucketName
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]|[— _.,?!]/g, '')
-          .toLowerCase();
-        bucketName =
-          bucketName.length < 3
-            ? bucketName +
-              `${Math.floor(Math.random() * (999 - 100 + 1)) + 100}`
-            : bucketName;
-        const fileName = `${
-          config.aws_s3.defaultBucketName ? client.session + '/' : ''
-        }${hashName}.${mime.extension(message.mimetype)}`;
+      const canUploadS3 =
+        req.serverOptions?.webhook?.uploadS3 ||
+        req.serverOptions?.websocket?.uploadS3 ||
+        false;
 
-        if (
-          !config.aws_s3.defaultBucketName &&
-          !(await bucketAlreadyExists(bucketName))
-        ) {
-          await s3Client.send(
-            new CreateBucketCommand({
-              Bucket: bucketName,
-              ObjectOwnership: 'ObjectWriter',
-            })
-          );
-          await s3Client.send(
-            new PutPublicAccessBlockCommand({
-              Bucket: bucketName,
-              PublicAccessBlockConfiguration: {
-                BlockPublicAcls: false,
-                IgnorePublicAcls: false,
-                BlockPublicPolicy: false,
-              },
-            })
-          );
-        }
-
-        await s3Client.send(
-          new PutObjectCommand({
-            Bucket: bucketName,
-            Key: fileName,
-            Body: buffer,
-            ContentType: message.mimetype,
-            ACL: 'public-read',
-          })
-        );
-
-        message.fileUrl = `https://${bucketName}.s3.amazonaws.com/${fileName}`;
+      if (canUploadS3) {
+        message = await uploadS3(client, req, message, buffer);
       } else {
         message.body = await buffer.toString('base64');
       }
@@ -230,6 +172,78 @@ export async function autoDownload(client: any, req: any, message: any) {
   } catch (e) {
     req.logger.error(e);
   }
+}
+
+export async function uploadS3(
+  client: any,
+  req: any,
+  message: any,
+  buffer: any
+) {
+  const hashName = crypto.randomBytes(24).toString('hex');
+
+  if (
+    !config?.aws_s3?.region ||
+    !config?.aws_s3?.access_key_id ||
+    !config?.aws_s3?.secret_key
+  )
+    throw new Error('Please, configure your aws configs');
+
+  const s3Client = new S3Client({
+    region: config?.aws_s3?.region,
+    endpoint: config?.aws_s3?.endpoint || undefined,
+    forcePathStyle: config?.aws_s3?.forcePathStyle || undefined,
+  });
+  let bucketName = config?.aws_s3?.defaultBucketName
+    ? config?.aws_s3?.defaultBucketName
+    : client.session;
+  bucketName = bucketName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]|[— _.,?!]/g, '')
+    .toLowerCase();
+  bucketName =
+    bucketName.length < 3
+      ? bucketName + `${Math.floor(Math.random() * (999 - 100 + 1)) + 100}`
+      : bucketName;
+  const fileName = `${
+    config.aws_s3.defaultBucketName ? client.session + '/' : ''
+  }${hashName}.${mime.extension(message.mimetype)}`;
+
+  if (
+    !config.aws_s3.defaultBucketName &&
+    !(await bucketAlreadyExists(bucketName))
+  ) {
+    await s3Client.send(
+      new CreateBucketCommand({
+        Bucket: bucketName,
+        ObjectOwnership: 'ObjectWriter',
+      })
+    );
+    await s3Client.send(
+      new PutPublicAccessBlockCommand({
+        Bucket: bucketName,
+        PublicAccessBlockConfiguration: {
+          BlockPublicAcls: false,
+          IgnorePublicAcls: false,
+          BlockPublicPolicy: false,
+        },
+      })
+    );
+  }
+
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: bucketName,
+      Key: fileName,
+      Body: buffer,
+      ContentType: message.mimetype,
+      ACL: 'public-read',
+    })
+  );
+
+  message.fileUrl = `https://${bucketName}.s3.amazonaws.com/${fileName}`;
+
+  return message;
 }
 
 export async function startAllSessions(config: any, logger: any) {
