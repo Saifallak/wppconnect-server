@@ -144,6 +144,8 @@ This server use config.ts file to define some options, default values are:
     autoDownload: true,
     // enable upload to s3
     uploadS3: false,
+    // enable upload to firebase
+    uploadFirebase: false,
     // set default bucket name on aws s3
     awsBucketName: null,
     //marks messages as read when the webhook returns ok
@@ -172,6 +174,8 @@ This server use config.ts file to define some options, default values are:
     autoDownload: false,
     // Just leave one active, here or on webhook.uploadS3, to avoid duplication in S3
     uploadS3: false,
+    // Just leave one active, here or on webhook.uploadFirebase, to avoid duplication in Firebase
+    uploadFirebase: false,
   },
   // send data to chatwoot
   chatwoot: {
@@ -243,6 +247,9 @@ This server use config.ts file to define some options, default values are:
     secret_key: '',
     // If you already have a bucket created that will be used. Will bestored: you-default-bucket/{session}/{filename}
     defaultBucketName: ''
+  },
+  firebase: {
+   service_account: null,
   },
 }
 ```

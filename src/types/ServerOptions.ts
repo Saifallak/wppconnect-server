@@ -14,6 +14,7 @@ export interface ServerOptions {
     url: string;
     autoDownload: boolean;
     uploadS3: boolean;
+    uploadFirebase: boolean;
     readMessage: boolean;
     allUnreadOnStart: boolean;
     listenAcks: boolean;
@@ -28,6 +29,7 @@ export interface ServerOptions {
   websocket: {
     autoDownload: boolean;
     uploadS3: boolean;
+    uploadFirebase: boolean;
   };
   archive: {
     enable: boolean;
@@ -67,5 +69,8 @@ export interface ServerOptions {
     defaultBucketName: string | null;
     endpoint?: string | null;
     forcePathStyle?: boolean | null;
+  };
+  firebase: {
+    service_account: string | null;
   };
 }

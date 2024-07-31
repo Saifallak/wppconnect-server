@@ -14,6 +14,7 @@ export default {
     url: null,
     autoDownload: true,
     uploadS3: false,
+    uploadFirebase: false,
     readMessage: true,
     allUnreadOnStart: false,
     listenAcks: true,
@@ -29,6 +30,7 @@ export default {
   websocket: {
     autoDownload: false,
     uploadS3: false,
+    uploadFirebase: false,
   },
   chatwoot: {
     sendQrCode: true,
@@ -103,5 +105,8 @@ export default {
     defaultBucketName: null,
     endpoint: null,
     forcePathStyle: null,
+  },
+  firebase: {
+    service_account: null,
   },
 } as unknown as ServerOptions;
