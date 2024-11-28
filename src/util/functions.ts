@@ -163,8 +163,15 @@ export async function autoDownload(client: any, req: any, message: any) {
         req.serverOptions?.websocket?.uploadS3 ||
         false;
 
+      const canUploadFirebase =
+        req.serverOptions?.webhook?.uploadFirebase ||
+        req.serverOptions?.websocket?.uploadFirebase ||
+        false;
+
       if (canUploadS3) {
         message = await uploadS3(client, req, message, buffer);
+      } else if (canUploadFirebase) {
+        message = await uploadFirebase(client, req, message, buffer);
       } else {
         message.body = await buffer.toString('base64');
       }
@@ -172,6 +179,18 @@ export async function autoDownload(client: any, req: any, message: any) {
   } catch (e) {
     req.logger.error(e);
   }
+}
+
+export async function uploadFirebase(
+  client: any,
+  req: any,
+  message: any,
+  buffer: any
+) {
+  const hashName = crypto.randomBytes(24).toString('hex');
+
+  if (!config?.firebase?.service_account)
+    throw new Error('Please, configure your firebase configs');
 }
 
 export async function uploadS3(
