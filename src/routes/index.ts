@@ -36,7 +36,7 @@ import * as prometheusRegister from '../middleware/instrumentation';
 import statusConnection from '../middleware/statusConnection';
 import swaggerDocument from '../swagger.json';
 
-const upload = multer(uploadConfig as any);
+const upload = multer(uploadConfig as any) as any;
 const routes: Router = Router();
 
 // Generate Token
@@ -94,6 +94,11 @@ routes.post(
   '/api/:session/subscribe-presence',
   verifyToken,
   SessionController.subscribePresence
+);
+routes.post(
+  '/api/:session/set-online-presence',
+  verifyToken,
+  SessionController.setOnlinePresence
 );
 routes.post(
   '/api/:session/download-media',
@@ -311,6 +316,24 @@ routes.post(
   verifyToken,
   statusConnection,
   GroupController.demoteParticipant
+);
+routes.get(
+  '/api/:session/group-membership-request/:groupId',
+  verifyToken,
+  statusConnection,
+  GroupController.getGroupMembershipRequests
+);
+routes.post(
+  '/api/:session/approve-group-membership-request',
+  verifyToken,
+  statusConnection,
+  GroupController.approveGroupMembershipRequest
+);
+routes.post(
+  '/api/:session/reject-group-membership-request',
+  verifyToken,
+  statusConnection,
+  GroupController.rejectGroupMembershipRequest
 );
 routes.post(
   '/api/:session/group-info-from-invite-link',
@@ -932,8 +955,8 @@ routes.post(
 routes.post('/api/:session/chatwoot', DeviceController.chatWoot);
 
 // Api Doc
-routes.use('/api-docs', swaggerUi.serve);
-routes.get('/api-docs', swaggerUi.setup(swaggerDocument));
+routes.use('/api-docs', swaggerUi.serve as any);
+routes.get('/api-docs', swaggerUi.setup(swaggerDocument) as any);
 
 //k8s
 routes.get('/healthz', HealthCheck.healthz);
