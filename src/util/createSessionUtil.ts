@@ -27,7 +27,9 @@ import Factory from './tokenStore/factory';
 const initializingPromises = new Map<string, Promise<void>>();
 
 // Timeout for waiting on another initialization (in milliseconds)
-const INITIALIZATION_WAIT_TIMEOUT = 60000; // 60 seconds
+// This covers: browser launch (10s) + page load (15s) + QR scan by user (45s) + connection (10s) + buffer (10s)
+// Note: Should be longer than the autoClose timeout in config to allow QR scanning
+const INITIALIZATION_WAIT_TIMEOUT = 90000; // 90 seconds
 
 // Helper function to add timeout to a promise
 function withTimeout<T>(
@@ -85,6 +87,41 @@ export default class CreateSessionUtil {
           req.logger.info(
             `Session ${session} initialization completed by another request`
           );
+
+          // After waiting, get the current client state and return it to the user
+          const completedClient = this.getClient(session) as any;
+          if (completedClient && completedClient.status) {
+            // If response object exists (from startSession), send the current state
+            if (res && !res._headerSent) {
+              if (completedClient.status === 'CONNECTED') {
+                res.status(200).json({
+                  status: 'success',
+                  message: 'Session already connected',
+                  state: completedClient.status,
+                  session: session,
+                });
+              } else if (completedClient.status === 'QRCODE') {
+                res.status(200).json({
+                  status: 'qrcode',
+                  qrcode: completedClient.qrcode,
+                  urlcode: completedClient.urlcode,
+                  session: session,
+                });
+              } else if (completedClient.status === 'PHONECODE') {
+                res.status(200).json({
+                  status: 'phoneCode',
+                  phone: completedClient.phone,
+                  phoneCode: completedClient.phoneCode,
+                  session: session,
+                });
+              } else {
+                res.status(200).json({
+                  status: completedClient.status,
+                  session: session,
+                });
+              }
+            }
+          }
           return;
         } catch (error) {
           if (
@@ -124,7 +161,7 @@ export default class CreateSessionUtil {
           );
           initializingPromises.delete(session);
         }
-      }, INITIALIZATION_WAIT_TIMEOUT + 5000); // 5 seconds buffer
+      }, INITIALIZATION_WAIT_TIMEOUT + 5000); // 95 seconds - 5 seconds buffer after wait timeout
 
       try {
         await initPromise;
