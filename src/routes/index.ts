@@ -31,6 +31,7 @@ import * as NewsletterController from '../controller/newsletterController';
 import * as OrderController from '../controller/orderController';
 import * as SessionController from '../controller/sessionController';
 import * as StatusController from '../controller/statusController';
+import * as ResourceController from '../controller/resourceController';
 import verifyToken from '../middleware/auth';
 import * as HealthCheck from '../middleware/healthCheck';
 import * as prometheusRegister from '../middleware/instrumentation';
@@ -49,10 +50,19 @@ routes.get('/api/:secretkey/show-all-sessions', (_req, res) =>
     message: 'Use POST /api/show-all-sessions with the x-secret-key header.',
   })
 );
+routes.get(
+  '/api/:secretkey/all-sessions-resource-usage',
+  ResourceController.getAllSessionsResourceUsage
+);
 routes.post('/api/show-all-sessions', SessionController.showAllSessions);
 routes.post('/api/:secretkey/start-all', SessionController.startAllSessions);
 
 // Sessions
+routes.get(
+  '/api/:session/resource-usage',
+  verifyToken,
+  ResourceController.getSessionResourceUsage
+);
 routes.get(
   '/api/:session/check-connection-session',
   verifyToken,
