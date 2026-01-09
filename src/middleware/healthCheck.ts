@@ -16,6 +16,15 @@
 
 import { Request, Response } from 'express';
 
+import config from '../config';
+import { SessionResourceMonitor } from '../util/SessionResourceMonitor';
+
+// Initialize resource monitor
+const resourceMonitor = new SessionResourceMonitor(
+  config.customUserDataDir || './userDataDir/',
+  5000
+);
+
 export async function healthz(req: Request, res: Response) {
   /**
      #swagger.tags = ["Misc"]
@@ -23,15 +32,24 @@ export async function healthz(req: Request, res: Response) {
      #swagger.description = 'This endpoint can be used to check the health status of the API. It returns a response with a status code indicating the API's health status.'
      }
    */
-  const healthcheck = {
-    uptime: process.uptime(),
-    message: 'OK',
-    timestamp: Date.now(),
-  };
   try {
-    res.status(200).send(healthcheck);
+    const resourceUsage = await resourceMonitor.getAllSessionsUsage();
+
+    return res.status(200).json({
+      uptime: process.uptime(),
+      message: 'OK',
+      timestamp: Date.now(),
+      sessions: {
+        total: resourceUsage.summary.totalSessions,
+        running: resourceUsage.summary.runningSessions,
+      },
+      resources: {
+        totalCpu: resourceUsage.summary.totalCpu,
+        totalMemory: resourceUsage.summary.totalMemory,
+      },
+    });
   } catch (e: any) {
-    healthcheck.message = e;
+    // healthcheck.message = e;
     res.status(503).send();
   }
 }
