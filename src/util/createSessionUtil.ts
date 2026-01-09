@@ -90,36 +90,33 @@ export default class CreateSessionUtil {
 
           // After waiting, get the current client state and return it to the user
           const completedClient = this.getClient(session) as any;
-          if (completedClient && completedClient.status) {
-            // If response object exists (from startSession), send the current state
-            if (res && !res._headerSent) {
-              if (completedClient.status === 'CONNECTED') {
-                res.status(200).json({
-                  status: 'success',
-                  message: 'Session already connected',
-                  state: completedClient.status,
-                  session: session,
-                });
-              } else if (completedClient.status === 'QRCODE') {
-                res.status(200).json({
-                  status: 'qrcode',
-                  qrcode: completedClient.qrcode,
-                  urlcode: completedClient.urlcode,
-                  session: session,
-                });
-              } else if (completedClient.status === 'PHONECODE') {
-                res.status(200).json({
-                  status: 'phoneCode',
-                  phone: completedClient.phone,
-                  phoneCode: completedClient.phoneCode,
-                  session: session,
-                });
-              } else {
-                res.status(200).json({
-                  status: completedClient.status,
-                  session: session,
-                });
-              }
+          if (completedClient && res && !res._headerSent) {
+            if (completedClient.status === 'CONNECTED') {
+              res.status(200).json({
+                status: 'CONNECTED',
+                message: 'Session connected',
+                session: session,
+              });
+            } else if (completedClient.status === 'QRCODE') {
+              res.status(200).json({
+                status: 'QRCODE',
+                qrcode: completedClient.qrcode,
+                urlcode: completedClient.urlcode,
+                session: session,
+              });
+            } else if (completedClient.status === 'PHONECODE') {
+              res.status(200).json({
+                status: 'PHONECODE',
+                phone: completedClient.phone,
+                phoneCode: completedClient.phoneCode,
+                session: session,
+              });
+            } else {
+              // Any other status (including CLOSED, null, etc.)
+              res.status(200).json({
+                status: completedClient.status || 'CLOSED',
+                session: session,
+              });
             }
           }
           return;
@@ -135,10 +132,22 @@ export default class CreateSessionUtil {
             initializingPromises.delete(session);
             // Continue to initialize ourselves
           } else {
-            req.logger.warn(
-              `Previous initialization of ${session} failed: ${error}, retrying...`
-            );
-            // If the previous initialization failed, we'll continue to try again
+            // Initialization failed (e.g., Auto Close, network error, etc.)
+            req.logger.warn(`Initialization of ${session} failed: ${error}`);
+
+            // Get the current client state (should be CLOSED after failure)
+            const failedClient = this.getClient(session) as any;
+
+            // Don't retry - just inform all waiting requests that the session failed/closed
+            // They can send a new request if they want to try again
+            if (res && !res._headerSent) {
+              res.status(200).json({
+                status: failedClient.status || 'CLOSED',
+                message: String(error),
+                session: session,
+              });
+            }
+            return;
           }
         }
       }
