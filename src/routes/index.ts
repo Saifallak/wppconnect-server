@@ -502,6 +502,12 @@ routes.post(
   DeviceController.clearAllChats
 );
 routes.post(
+  '/api/:session/open-chat',
+  verifyToken,
+  statusConnection,
+  DeviceController.openChat
+);
+routes.post(
   '/api/:session/delete-chat',
   verifyToken,
   statusConnection,

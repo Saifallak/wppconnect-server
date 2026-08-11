@@ -543,6 +543,72 @@ export async function getBlockList(req: Request, res: Response) {
   }
 }
 
+export async function openChat(req: Request, res: Response) {
+  /**
+   * #swagger.tags = ["Chat"]
+     #swagger.autoBody=false
+     #swagger.security = [{
+            "bearerAuth": []
+     }]
+     #swagger.parameters["session"] = {
+      schema: 'NERDWHATS_AMERICA'
+     }
+     #swagger.requestBody = {
+      required: true,
+      "@content": {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              phone: { type: "string" },
+              isGroup: { type: "boolean" },
+              messageId: { type: "string" }
+            }
+          },
+          examples: {
+            "Default": {
+              value: {
+                phone: "5521999999999",
+                isGroup: false,
+                messageId: ""
+              }
+            }
+          }
+        }
+      }
+     }
+   */
+  const { phone, isGroup = false, messageId } = req.body;
+  const session = req.session;
+
+  if (!phone) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Parameter phone is required',
+    });
+  }
+
+  try {
+    let response;
+    for (const contato of contactToArray(phone, isGroup as boolean)) {
+      if (messageId) {
+        response = await req.client.openChatAt(contato, messageId);
+      } else {
+        response = await req.client.openChat(contato);
+      }
+    }
+
+    res.status(200).json({ status: 'success', response: response });
+  } catch (error) {
+    req.logger.error(error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error on open chat',
+      error: error,
+    });
+  }
+}
+
 export async function deleteChat(req: Request, res: Response) {
   /**
    * #swagger.tags = ["Chat"]
