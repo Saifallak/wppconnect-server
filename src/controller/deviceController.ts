@@ -377,21 +377,24 @@ export async function getChatById(req: Request, res: Response) {
       schema: 'NERDWHATS_AMERICA'
      }
      #swagger.parameters["phone"] = {
-      schema: '5521999999999'
+      schema: '5521999999999@c.us'
      }
      #swagger.parameters["isGroup"] = {
       schema: 'false'
      }
    */
   const { phone } = req.params;
-  const { isGroup } = req.query;
+  const { isGroup = false, isNewsletter = false, isLid = false } = req.query;
 
   try {
     let result = {} as Chat;
-    if (isGroup) {
-      result = await req.client.getChatById(`${phone}@g.us`);
-    } else {
-      result = await req.client.getChatById(`${phone}@c.us`);
+    for (const contato of contactToArray(
+      phone as string,
+      isGroup as boolean,
+      isNewsletter as boolean,
+      isLid as boolean
+    )) {
+      result = await req.client.getChatById(contato);
     }
 
     res.status(200).json(result);
@@ -536,6 +539,72 @@ export async function getBlockList(req: Request, res: Response) {
       status: 'error',
       message: 'Error retrieving blocked contact list',
       error: e,
+    });
+  }
+}
+
+export async function openChat(req: Request, res: Response) {
+  /**
+   * #swagger.tags = ["Chat"]
+     #swagger.autoBody=false
+     #swagger.security = [{
+            "bearerAuth": []
+     }]
+     #swagger.parameters["session"] = {
+      schema: 'NERDWHATS_AMERICA'
+     }
+     #swagger.requestBody = {
+      required: true,
+      "@content": {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              phone: { type: "string" },
+              isGroup: { type: "boolean" },
+              messageId: { type: "string" }
+            }
+          },
+          examples: {
+            "Default": {
+              value: {
+                phone: "5521999999999",
+                isGroup: false,
+                messageId: ""
+              }
+            }
+          }
+        }
+      }
+     }
+   */
+  const { phone, isGroup = false, messageId } = req.body;
+  const session = req.session;
+
+  if (!phone) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Parameter phone is required',
+    });
+  }
+
+  try {
+    let response;
+    for (const contato of contactToArray(phone, isGroup as boolean)) {
+      if (messageId) {
+        response = await req.client.openChatAt(contato, messageId);
+      } else {
+        response = await req.client.openChat(contato);
+      }
+    }
+
+    res.status(200).json({ status: 'success', response: response });
+  } catch (error) {
+    req.logger.error(error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Error on open chat',
+      error: error,
     });
   }
 }
@@ -1003,12 +1072,11 @@ export async function forwardMessages(req: Request, res: Response) {
   const { phone, messageId, isGroup = false } = req.body;
 
   try {
+    const contacts = contactToArray(phone, isGroup);
     let response;
 
-    if (!isGroup) {
-      response = await req.client.forwardMessagesV2(`${phone[0]}`, messageId);
-    } else {
-      response = await req.client.forwardMessagesV2(`${phone[0]}`, messageId);
+    for (const contato of contacts) {
+      response = await req.client.forwardMessagesV2(contato, messageId);
     }
 
     res.status(201).json({ status: 'success', response: response });
