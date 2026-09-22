@@ -17,6 +17,7 @@ import { create, SocketState, StatusFind } from '@wppconnect-team/wppconnect';
 import { Request } from 'express';
 
 import { download } from '../controller/sessionController';
+import { emitManager } from '../manager/socket';
 import { WhatsAppServer } from '../types/WhatsAppServer';
 import chatWootClient from './chatWootClient';
 import { autoDownload, callWebHook, startHelper } from './functions';
@@ -221,6 +222,9 @@ export default class CreateSessionUtil {
       data: 'data:image/png;base64,' + imageBuffer.toString('base64'),
       session: client.session,
     });
+    emitManager(req.io, client.session, 'qrCode', {
+      qrcode: 'data:image/png;base64,' + imageBuffer.toString('base64'),
+    });
 
     callWebHook(client, req, 'qrcode', {
       qrcode: qrCode,
@@ -237,7 +241,6 @@ export default class CreateSessionUtil {
   }
 
   async onParticipantsChanged(req: any, client: any) {
-    await client.isConnected();
     await client.onParticipantsChanged((message: any) => {
       callWebHook(client, req, 'onparticipantschanged', message);
     });
@@ -251,10 +254,12 @@ export default class CreateSessionUtil {
       req.logger.info(`Started Session: ${client.session}`);
       //callWebHook(client, req, 'session-logged', { status: 'CONNECTED'});
       req.io.emit('session-logged', { status: true, session: client.session });
+      emitManager(req.io, client.session, 'status', { status: 'CONNECTED' });
       startHelper(client, req);
     } catch (error) {
       req.logger.error(error);
       req.io.emit('session-error', client.session);
+      emitManager(req.io, client.session, 'status', { status: 'ERROR' });
     }
 
     await this.checkStateSession(client, req);
@@ -271,6 +276,7 @@ export default class CreateSessionUtil {
 
   async checkStateSession(client: WhatsAppServer, req: Request) {
     await client.onStateChange((state) => {
+      emitManager(req.io, client.session, 'status', { status: state });
       req.logger.info(`State Change ${state}: ${client.session}`);
       const conflits = [SocketState.CONFLICT];
 
@@ -305,6 +311,7 @@ export default class CreateSessionUtil {
       }
 
       req.io.emit('received-message', { response: message });
+      emitManager(req.io, client.session, 'message', message);
       if (req.serverOptions.webhook.onSelfMessage && message.fromMe)
         callWebHook(client, req, 'onselfmessage', message);
     });
@@ -330,7 +337,6 @@ export default class CreateSessionUtil {
   }
 
   async onReactionMessage(client: WhatsAppServer, req: Request) {
-    await client.isConnected();
     await client.onReactionMessage(async (reaction: any) => {
       req.io.emit('onreactionmessage', reaction);
       callWebHook(client, req, 'onreactionmessage', reaction);
@@ -338,21 +344,18 @@ export default class CreateSessionUtil {
   }
 
   async onRevokedMessage(client: WhatsAppServer, req: Request) {
-    await client.isConnected();
     await client.onRevokedMessage(async (response: any) => {
       req.io.emit('onrevokedmessage', response);
       callWebHook(client, req, 'onrevokedmessage', response);
     });
   }
   async onPollResponse(client: WhatsAppServer, req: Request) {
-    await client.isConnected();
     await client.onPollResponse(async (response: any) => {
       req.io.emit('onpollresponse', response);
       callWebHook(client, req, 'onpollresponse', response);
     });
   }
   async onLabelUpdated(client: WhatsAppServer, req: Request) {
-    await client.isConnected();
     await client.onUpdateLabel(async (response: any) => {
       req.io.emit('onupdatelabel', response);
       callWebHook(client, req, 'onupdatelabel', response);

@@ -60,7 +60,6 @@ export default async function statusConnection(
         index++;
       }
       req.body.phone = localArr;
-      return next();
     } else {
       return res.status(404).json({
         response: null,
@@ -68,6 +67,7 @@ export default async function statusConnection(
         message: 'A sessão do WhatsApp não está ativa.',
       });
     }
+    return next();
   } catch (error) {
     req.logger.error(error);
     return res.status(404).json({

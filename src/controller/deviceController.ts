@@ -579,7 +579,6 @@ export async function openChat(req: Request, res: Response) {
      }
    */
   const { phone, isGroup = false, messageId } = req.body;
-  const session = req.session;
 
   if (!phone) {
     return res.status(400).json({
@@ -1075,11 +1074,11 @@ export async function forwardMessages(req: Request, res: Response) {
     const contacts = contactToArray(phone, isGroup);
     let response;
 
-    for (const contato of contacts) {
-      response = await req.client.forwardMessagesV2(contato, messageId);
+    for (const contact of contacts) {
+      response = await req.client.forwardMessagesV2(contact, messageId);
     }
 
-    res.status(201).json({ status: 'success', response: response });
+    res.status(201).json({ status: 'success', response });
   } catch (e) {
     req.logger.error(e);
     res
