@@ -155,8 +155,10 @@ sudo dpkg -i google-chrome-stable_current_amd64.deb
 ```
 
 ### Troubleshooting
- If you encounter installation issues, please try the procedures below
- . Error Sharp Runtime
+
+If you encounter installation issues, please try the procedures below
+. Error Sharp Runtime
+
 ```sh
     yarn add sharp
     npm install --include=optional sharp
@@ -184,14 +186,14 @@ Configuration defaults remain in [src/config.ts](src/config.ts). Supported envir
 
 The default configuration resolves values in this order: existing process environment, optional `.env` in the working directory, then built-in defaults. Restart the process or recreate the container after changing a value. Variables are read at runtime, so changing them does not require rebuilding the image.
 
-| Area | Variables |
-| --- | --- |
-| Server | `SECRET_KEY`, `HOST`, `PORT`, `WEBHOOK_URL` |
-| Sessions | `TOKEN_STORE_TYPE`, `CUSTOM_USER_DATA_DIR`, `MAX_LISTENERS` |
-| Manager | `MANAGER_ENABLED`, `MANAGER_DIST` |
-| Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_DB`, `REDIS_PREFIX` |
-| MongoDB | `MONGO_URL_REMOTE`, `MONGODB_DATABASE`, `MONGODB_COLLECTION`, `MONGODB_USER`, `MONGODB_PASSWORD`, `MONGODB_HOST`, `MONGODB_PORT` |
-| Compose image | `WPP_SERVER_TAG` (used by Compose, not the Node server) |
+| Area          | Variables                                                                                                                        |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Server        | `SECRET_KEY`, `HOST`, `PORT`, `WEBHOOK_URL`                                                                                      |
+| Sessions      | `TOKEN_STORE_TYPE`, `CUSTOM_USER_DATA_DIR`, `MAX_LISTENERS`                                                                      |
+| Manager       | `MANAGER_ENABLED`, `MANAGER_DIST`                                                                                                |
+| Redis         | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_DB`, `REDIS_PREFIX`                                                         |
+| MongoDB       | `MONGO_URL_REMOTE`, `MONGODB_DATABASE`, `MONGODB_COLLECTION`, `MONGODB_USER`, `MONGODB_PASSWORD`, `MONGODB_HOST`, `MONGODB_PORT` |
+| Compose image | `WPP_SERVER_TAG` (used by Compose, not the Node server)                                                                          |
 
 For Node, both `yarn dev` and the compiled `yarn start` load the optional file automatically. For example, after setting `PORT=21470` in `.env`, the server listens on port 21470. `HOST` supplies the advertised URL; it does not restrict the listener address.
 
