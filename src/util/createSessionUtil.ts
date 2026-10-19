@@ -25,6 +25,9 @@ import { autoDownload, callWebHook, startHelper } from './functions';
 import { tryBeginSessionStart } from './sessionMaintenance';
 import { clientsArray, eventEmitter } from './sessionUtil';
 import Factory from './tokenStore/factory';
+import { applyWppconnectPatches } from './wppconnectPatches';
+
+applyWppconnectPatches();
 
 export default class CreateSessionUtil {
   startChatWootClient(client: any) {
